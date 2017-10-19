@@ -42,7 +42,7 @@ int motorB_left_speed = 100;
 
 // Threshold values for all the ultrasonic sensors
 const int side_ultrasonic_threshold = 30;
-const int ultrasonic_45_threshold = 6;
+const int ultrasonic_45_threshold = 7;
 const int front_ultrasonic_threshold = 30;
 
 signed int distance_change; // The difference between left and right sensors
@@ -200,9 +200,8 @@ void loop()
       else
         State_array[0] = Go_straight;
 
-      //speed_change = map(distance_change, 0, 40, 5, 80);
+      //distance_change = distance_change * 2;
       speed_change = pow(distance_change, 2);
-      //speed_change = distance_change + 10;
   
       switch (State_array[0])
       {
@@ -275,7 +274,7 @@ void loop()
         // FORWARD B LEFT
         digitalWrite(IN3, LOW);
         digitalWrite(IN4, HIGH);
-        if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 5))
+        if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 7))
         {
           do{
             motorA_right_speed = motor_speed;
@@ -294,7 +293,7 @@ void loop()
       {
         motorA_right_speed = motor_speed;
         motorB_left_speed = 0;
-        if((distance_front_right < ultrasonic_45_threshold) || (distance_right < 5))
+        if((distance_front_right < ultrasonic_45_threshold) || (distance_right < 7))
         {
           do{
             motorA_right_speed = 0;
