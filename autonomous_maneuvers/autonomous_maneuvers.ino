@@ -37,8 +37,8 @@ enum State_turn
 };
 
 // Motor's speed (PWM signal)
-int motorA_right_speed = 100;
-int motorB_left_speed = 100;
+int motorA_right_speed = 0;
+int motorB_left_speed = 0;
 
 // Threshold values for all the ultrasonic sensors
 const int side_ultrasonic_threshold = 30;
@@ -51,7 +51,7 @@ int Should_Start; // Start the moving
 
 const int max_speed = 255; // Maximum speed of the motors
 
-int motor_speed = 130;
+int motor_speed = 195;
 
 int speed_change = 0; // The difference in speed to give each of the motors
 
@@ -160,10 +160,12 @@ void loop()
   Serial.print(distance_front_right);
   Serial.print("\n\n");
 
-  delay(500);*/
+  delay(500);
+*/
 
+  //if((distance_front_right > 20) && (distance_front_left > 20) && (distance_front < 40))
 
-  if((distance_right > side_ultrasonic_threshold) && (distance_left > side_ultrasonic_threshold) && (distance_front < front_ultrasonic_threshold) && (distance_front_left > ultrasonic_45_threshold) && (distance_front_right > ultrasonic_45_threshold))  // At a T junction the robot needs to stop first
+  if((distance_right > side_ultrasonic_threshold) && (distance_left > side_ultrasonic_threshold) && (distance_front < front_ultrasonic_threshold) && (distance_front_right > 20) && (distance_front_left > 20))  // At a T junction the robot needs to stop first
   {
     Should_Start = 0;
   
@@ -175,8 +177,8 @@ void loop()
     digitalWrite(IN4, LOW);
       
     analogWrite(ENA, 0);
-    analogWrite(ENB, 0);
-    //while(1);    
+    analogWrite(ENB, 0);   
+    while(1);
   }
   /*if(distance_left > 20)  // Avoiding overshoot in the value of ultrasonic sensors
     distance_left = 40;
@@ -200,7 +202,7 @@ void loop()
       else
         State_array[0] = Go_straight;
 
-      //distance_change = distance_change * 2;
+      //distance_change = distance_change * 0.5;
       speed_change = pow(distance_change, 2);
   
       switch (State_array[0])
@@ -208,7 +210,7 @@ void loop()
         case Move_right:
 
               //speed_change = find_change_speed();
-              if(speed_change > 130)
+              if(speed_change > 60)
               {
                 motorB_left_speed = max_speed;
                 motorA_right_speed = 0;
@@ -223,7 +225,7 @@ void loop()
         case Move_left:
               
               //speed_change = find_change_speed();
-              if(speed_change > 130)
+              if(speed_change > 60)
               {
                 motorB_left_speed = 0;
                 motorA_right_speed = max_speed;
@@ -274,7 +276,7 @@ void loop()
         // FORWARD B LEFT
         digitalWrite(IN3, LOW);
         digitalWrite(IN4, HIGH);
-        if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 7))
+        if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 5))
         {
           do{
             motorA_right_speed = motor_speed;
@@ -285,15 +287,17 @@ void loop()
             // FORWARD B LEFT
             digitalWrite(IN3, LOW);
             digitalWrite(IN4, LOW);
+            analogWrite(ENA, motorA_right_speed);
+            analogWrite(ENB, motorB_left_speed);
           }while(ultrasonic_45_threshold > ultrasonic_distance(trigPin_front_left, echoPin_front_left));
-          delay(350);
+          delay(150);
         }
       }
       else
       {
         motorA_right_speed = motor_speed;
         motorB_left_speed = 0;
-        if((distance_front_right < ultrasonic_45_threshold) || (distance_right < 7))
+        if((distance_front_right < ultrasonic_45_threshold) || (distance_right < 5))
         {
           do{
             motorA_right_speed = 0;
@@ -304,13 +308,14 @@ void loop()
             // FORWARD B LEFT
             digitalWrite(IN3, HIGH);
             digitalWrite(IN4, LOW);
+            analogWrite(ENA, motorA_right_speed);
+            analogWrite(ENB, motorB_left_speed);
           }while(ultrasonic_45_threshold > ultrasonic_distance(trigPin_front_right, echoPin_front_right));
-          delay(350);
+          delay(150);
         }
       }
       analogWrite(ENA, motorA_right_speed);
       analogWrite(ENB, motorB_left_speed);
-      delay(100);
     }
   }
   //delay(10);
