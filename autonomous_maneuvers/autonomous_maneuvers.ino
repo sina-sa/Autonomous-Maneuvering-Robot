@@ -36,6 +36,28 @@ enum State_turn
   Turn_left
 };
 
+// enum for the direction which the robot should go
+enum State_robot
+{
+  Moving,
+  Stop,
+  T_junction,
+  Ready_to_move
+};
+
+// This enum sets the correct pins for the motors to turn in a given direction
+enum State_motors_dir
+{
+  Left_forward,
+  Left_backward,
+  Left_stop,
+  Left_off,
+  Right_forward,
+  Right_backward,
+  Right_stop,
+  Right_off 
+};
+
 // Motor's speed (PWM signal)
 int motorA_right_speed = 0;
 int motorB_left_speed = 0;
@@ -55,7 +77,9 @@ int motor_speed = 195;
 
 int speed_change = 0; // The difference in speed to give each of the motors
 
-enum State_turn State_array[101]; // Keep track of the previous states
+enum State_turn direction_to_go; // Keep track of the previous states
+
+enum State_robot What_To_Do; // Keep track of the robot's state. If it has to move or stop
 
 void setup() 
 {
@@ -82,11 +106,7 @@ void setup()
   // Serial port setup
   Serial.begin(9600); // Starts the serial communication
 
-  // setting the initial value for the whole array
-  for(int i=100; i>=0; i--)
-  {
-    State_array[i] = Go_straight;
-  }
+  What_To_Do = Moving;
 }
 
 int ultrasonic_distance (int trigPin, int echoPin)
@@ -107,39 +127,114 @@ int ultrasonic_distance (int trigPin, int echoPin)
   return distanceCm;
 }
 
-int find_change_speed (void)
+int Find_motors_AB_speed(void)
 {
-  if(State_array[2] == State_array[0])
+  switch (direction_to_go)
   {
-    speed_change = speed_change + 5;
-    if(State_array[20] == State_array[0])
-    {
-      speed_change = speed_change + 10;
-      if(State_array[40] == State_array[0])
-      {
-        speed_change = speed_change + 20;
-        if(State_array[60] == State_array[0])
-        {
-          speed_change = speed_change + 35;
-          if(State_array[80] == State_array[0])
+    case Move_right:
+
+          if(speed_change > 60)
           {
-            speed_change = speed_change + 55;
-            if(State_array[100] == State_array[0])
-            {
-              speed_change = speed_change + 80;
-            }
+            motorB_left_speed = max_speed;
+            motorA_right_speed = 0;
           }
-        }
-      }
-    }
+          else
+          {
+            motorA_right_speed = motor_speed - speed_change;
+            motorB_left_speed = motor_speed + speed_change;
+          }
+          break;
+          
+    case Move_left:
+          
+          if(speed_change > 60)
+          {
+            motorB_left_speed = 0;
+            motorA_right_speed = max_speed;
+          }
+          else
+          {
+            motorA_right_speed = motor_speed + speed_change;
+            motorB_left_speed = motor_speed - speed_change;
+          }
+          break;
+
+    case Go_straight:
+
+          speed_change = 30;
+          motorA_right_speed = motor_speed + speed_change;
+          motorB_left_speed = motor_speed + speed_change;
+          break;
+
+    default:
+          return 0;
+          break;
   }
-  return speed_change;
+  return 1;
+}
+
+void Find_direction(void)
+{
+  if(distance_change > 0)
+  {
+    direction_to_go = Move_right;
+  }
+  else if(distance_change < 0)
+  {
+    distance_change = -distance_change;
+    direction_to_go = Move_left;
+  }
+  else
+    direction_to_go = Go_straight;
 }
 
 
+int Motors_movemet_direction(enum State_motors_dir motor_dir)
+{
+  switch (motor_dir)
+  {
+    case Left_forward:
+          digitalWrite(IN3, LOW);
+          digitalWrite(IN4, HIGH);
+          break; 
+    case Left_backward:
+          digitalWrite(IN3, HIGH);
+          digitalWrite(IN4, LOW);
+          break;
+    case Left_stop:
+          digitalWrite(IN3, HIGH);
+          digitalWrite(IN4, HIGH);
+          break; 
+    case Left_off:
+          digitalWrite(IN3, LOW);
+          digitalWrite(IN4, LOW);
+          break;
+    case Right_forward:
+          digitalWrite(IN1, LOW);
+          digitalWrite(IN2, HIGH);
+          break;
+    case Right_backward:
+          digitalWrite(IN1, HIGH);
+          digitalWrite(IN2, LOW);
+          break;
+    case Right_stop:
+          digitalWrite(IN1, HIGH);
+          digitalWrite(IN2, HIGH);
+          break;
+    case Right_off:
+          digitalWrite(IN1, LOW);
+          digitalWrite(IN2, LOW);
+          break;
+    default:
+          return 0;
+          break;
+  }
+  return 1;
+}
+
 void loop() 
 {
-  Should_Start = 1;
+  //What_To_Do = Moving;
 
   // Read the value from all 5 ultrasonic sensors
   distance_left = ultrasonic_distance(trigPin_left, echoPin_left);
@@ -166,100 +261,22 @@ void loop()
   //if((distance_front_right > 20) && (distance_front_left > 20) && (distance_front < 40))
 
   if((distance_right > side_ultrasonic_threshold) && (distance_left > side_ultrasonic_threshold) && (distance_front < front_ultrasonic_threshold) && (distance_front_right > 20) && (distance_front_left > 20))  // At a T junction the robot needs to stop first
-  {
-    Should_Start = 0;
-  
-    // FORWARD A RIGHT
-    digitalWrite(IN1, LOW);
-    digitalWrite(IN2, LOW);
-    // FORWARD B LEFT
-    digitalWrite(IN3, LOW);
-    digitalWrite(IN4, LOW);
-      
-    analogWrite(ENA, 0);
-    analogWrite(ENB, 0);   
-    while(1);
-  }
-  /*if(distance_left > 20)  // Avoiding overshoot in the value of ultrasonic sensors
-    distance_left = 40;
-  if(distance_right > 20)
-    distance_right = 40;*/
+    What_To_Do = Stop;
 
-  if(Should_Start)
+  if(What_To_Do == Moving)
   {
     if((distance_front_left >= ultrasonic_45_threshold) && (distance_front_right >= ultrasonic_45_threshold))
     { 
       distance_change = distance_right - distance_left;
-      if(distance_change > 0)
-      {
-        State_array[0] = Move_right;
-      }
-      else if(distance_change < 0)
-      {
-        distance_change = -distance_change;
-        State_array[0] = Move_left;
-      }
-      else
-        State_array[0] = Go_straight;
 
-      //distance_change = distance_change * 0.5;
+      Find_direction();
+
       speed_change = pow(distance_change, 2);
   
-      switch (State_array[0])
-      {
-        case Move_right:
+      Find_motors_AB_speed();
 
-              //speed_change = find_change_speed();
-              if(speed_change > 60)
-              {
-                motorB_left_speed = max_speed;
-                motorA_right_speed = 0;
-              }
-              else
-              {
-                motorA_right_speed = motor_speed - speed_change;
-                motorB_left_speed = motor_speed + speed_change;
-              }
-              break;
-              
-        case Move_left:
-              
-              //speed_change = find_change_speed();
-              if(speed_change > 60)
-              {
-                motorB_left_speed = 0;
-                motorA_right_speed = max_speed;
-              }
-              else
-              {
-                motorA_right_speed = motor_speed + speed_change;
-                motorB_left_speed = motor_speed - speed_change;
-              }
-              break;
-  
-        case Go_straight:
-              //
-              //speed_change = find_change_speed();
-              speed_change = 30;
-              motorA_right_speed = motor_speed + speed_change;
-              motorB_left_speed = motor_speed + speed_change;
-              break;
-  
-        default:
-              Serial.print("\n\n Unknown case !!! \n\n");
-      }
-      
-      for(int i=99; i>=0; i--)
-      {
-        State_array[i+1] = State_array[i];
-      }
-      
-      // FORWARD A RIGHT
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, HIGH);
-      // FORWARD B LEFT
-      digitalWrite(IN3, LOW);
-      digitalWrite(IN4, HIGH);
+      Motors_movemet_direction(Right_forward);
+      Motors_movemet_direction(Left_forward);
       
       analogWrite(ENA, motorA_right_speed);
       analogWrite(ENB, motorB_left_speed);
@@ -270,23 +287,18 @@ void loop()
       {
         motorA_right_speed = 0;
         motorB_left_speed = motor_speed;
-        // FORWARD A RIGHT
-        digitalWrite(IN1, LOW);
-        digitalWrite(IN2, HIGH);
-        // FORWARD B LEFT
-        digitalWrite(IN3, LOW);
-        digitalWrite(IN4, HIGH);
+
+        Motors_movemet_direction(Right_forward);
+        Motors_movemet_direction(Left_forward);
+        
         if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 5))
         {
           do{
             motorA_right_speed = motor_speed;
             motorB_left_speed = 0;
-            // FORWARD A RIGHT
-            digitalWrite(IN1, HIGH);
-            digitalWrite(IN2, LOW);
-            // FORWARD B LEFT
-            digitalWrite(IN3, LOW);
-            digitalWrite(IN4, LOW);
+            Motors_movemet_direction(Right_backward);
+            Motors_movemet_direction(Left_off);
+            
             analogWrite(ENA, motorA_right_speed);
             analogWrite(ENB, motorB_left_speed);
           }while(ultrasonic_45_threshold > ultrasonic_distance(trigPin_front_left, echoPin_front_left));
@@ -302,12 +314,10 @@ void loop()
           do{
             motorA_right_speed = 0;
             motorB_left_speed = motor_speed;
-            // FORWARD A RIGHT
-            digitalWrite(IN1, LOW);
-            digitalWrite(IN2, LOW);
-            // FORWARD B LEFT
-            digitalWrite(IN3, HIGH);
-            digitalWrite(IN4, LOW);
+            
+            Motors_movemet_direction(Right_off);
+            Motors_movemet_direction(Left_backward);
+            
             analogWrite(ENA, motorA_right_speed);
             analogWrite(ENB, motorB_left_speed);
           }while(ultrasonic_45_threshold > ultrasonic_distance(trigPin_front_right, echoPin_front_right));
@@ -318,5 +328,31 @@ void loop()
       analogWrite(ENB, motorB_left_speed);
     }
   }
-  //delay(10);
+  else if(What_To_Do == Stop)
+  {
+    // The robot must stop and figure out where it is.
+    Motors_movemet_direction(Right_stop);
+    Motors_movemet_direction(Left_stop);
+      
+    analogWrite(ENA, 255);
+    analogWrite(ENB, 255);
+    delay(50);
+    What_To_Do = T_junction;
+  }
+  else if(What_To_Do == T_junction)
+  {
+    // In this section the robot should scan for objects on the wall and look for a heat source.
+    Motors_movemet_direction(Right_off);
+    Motors_movemet_direction(Left_off);
+      
+    analogWrite(ENA, 0);
+    analogWrite(ENB, 0);
+    while(1);
+    //What_To_Do = Ready_to_move;
+  }
+  else
+  {
+    // This section is when the robot is done with the T_junction and now it has to either turn right or left.
+    
+  }
 }
