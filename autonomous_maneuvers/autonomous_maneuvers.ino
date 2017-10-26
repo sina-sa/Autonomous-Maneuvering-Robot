@@ -1,3 +1,8 @@
+#include <Servo.h>
+#include <PID_v1.h>
+
+Servo servo_left;
+Servo servo_right;
 
 // Ultrasonic sensors pins connected to Arduino
 const int trigPin_left = 13;
@@ -18,6 +23,10 @@ const int IN2 = A5;
 const int IN3 = A4;
 const int IN4 = A3;
 const int ENB = 6; // LEFT
+
+// Servo pins
+const int servo_L = 6;
+const int servo_R = 5;
 
 // Distance value return from each ultrasonic sensor
 long int distance_front;
@@ -64,7 +73,7 @@ int motorB_left_speed = 0;
 
 // Threshold values for all the ultrasonic sensors
 const int side_ultrasonic_threshold = 30;
-const int ultrasonic_45_threshold = 7;
+const int ultrasonic_45_threshold = 4;
 const int front_ultrasonic_threshold = 30;
 
 signed int distance_change; // The difference between left and right sensors
@@ -73,7 +82,13 @@ int Should_Start; // Start the moving
 
 const int max_speed = 255; // Maximum speed of the motors
 
-int motor_speed = 195;
+const int max_speed_left = 1700; // Maximum speed of the left motor
+const int max_speed_right = 1300; // Maximum speed of the right motor
+const int min_speed = 1500; // Maximum speed of the right motor
+
+
+int motor_speed_left = 1550;
+int motor_speed_right = 1450;
 
 int speed_change = 0; // The difference in speed to give each of the motors
 
@@ -106,6 +121,9 @@ void setup()
   // Serial port setup
   Serial.begin(9600); // Starts the serial communication
 
+  servo_left.attach(servo_L);
+  servo_right.attach(servo_R);
+
   What_To_Do = Moving;
 }
 
@@ -133,37 +151,37 @@ int Find_motors_AB_speed(void)
   {
     case Move_right:
 
-          if(speed_change > 60)
+          if(speed_change > 120)
           {
-            motorB_left_speed = max_speed;
-            motorA_right_speed = 0;
+            motorB_left_speed = 1650;
+            motorA_right_speed = 1480;
           }
           else
           {
-            motorA_right_speed = motor_speed - speed_change;
-            motorB_left_speed = motor_speed + speed_change;
+            motorA_right_speed = motor_speed_right + speed_change;
+            motorB_left_speed = motor_speed_left + speed_change;
           }
           break;
           
     case Move_left:
           
-          if(speed_change > 60)
+          if(speed_change > 120)
           {
-            motorB_left_speed = 0;
-            motorA_right_speed = max_speed;
+            motorB_left_speed = 1520;
+            motorA_right_speed = 1350;
           }
           else
           {
-            motorA_right_speed = motor_speed + speed_change;
-            motorB_left_speed = motor_speed - speed_change;
+            motorA_right_speed = motor_speed_right - speed_change;
+            motorB_left_speed = motor_speed_left - speed_change;
           }
           break;
 
     case Go_straight:
 
           speed_change = 30;
-          motorA_right_speed = motor_speed + speed_change;
-          motorB_left_speed = motor_speed + speed_change;
+          motorA_right_speed = motor_speed_right - speed_change;
+          motorB_left_speed = motor_speed_left + speed_change;
           break;
 
     default:
@@ -188,53 +206,9 @@ void Find_direction(void)
     direction_to_go = Go_straight;
 }
 
-
-int Motors_movemet_direction(enum State_motors_dir motor_dir)
-{
-  switch (motor_dir)
-  {
-    case Left_forward:
-          digitalWrite(IN3, LOW);
-          digitalWrite(IN4, HIGH);
-          break; 
-    case Left_backward:
-          digitalWrite(IN3, HIGH);
-          digitalWrite(IN4, LOW);
-          break;
-    case Left_stop:
-          digitalWrite(IN3, HIGH);
-          digitalWrite(IN4, HIGH);
-          break; 
-    case Left_off:
-          digitalWrite(IN3, LOW);
-          digitalWrite(IN4, LOW);
-          break;
-    case Right_forward:
-          digitalWrite(IN1, LOW);
-          digitalWrite(IN2, HIGH);
-          break;
-    case Right_backward:
-          digitalWrite(IN1, HIGH);
-          digitalWrite(IN2, LOW);
-          break;
-    case Right_stop:
-          digitalWrite(IN1, HIGH);
-          digitalWrite(IN2, HIGH);
-          break;
-    case Right_off:
-          digitalWrite(IN1, LOW);
-          digitalWrite(IN2, LOW);
-          break;
-    default:
-          return 0;
-          break;
-  }
-  return 1;
-}
-
 void loop() 
 {
-  //What_To_Do = Moving;
+  //What_To_Do = Stop;
 
   // Read the value from all 5 ultrasonic sensors
   distance_left = ultrasonic_distance(trigPin_left, echoPin_left);
@@ -271,82 +245,80 @@ void loop()
 
       Find_direction();
 
+      //speed_change = abs(PID_Output);
       speed_change = pow(distance_change, 2);
+      speed_change = speed_change / 4;
   
       Find_motors_AB_speed();
 
-      Motors_movemet_direction(Right_forward);
-      Motors_movemet_direction(Left_forward);
-      
-      analogWrite(ENA, motorA_right_speed);
-      analogWrite(ENB, motorB_left_speed);
+      servo_left.write(motorB_left_speed);
+      servo_right.write(motorA_right_speed);
     }
     else 
     {
       if(distance_front_left < ultrasonic_45_threshold)
       {
-        motorA_right_speed = 0;
-        motorB_left_speed = motor_speed;
+        motorA_right_speed = min_speed;
+        motorB_left_speed = motor_speed_left;
 
-        Motors_movemet_direction(Right_forward);
-        Motors_movemet_direction(Left_forward);
+        //Motors_movemet_direction(Right_forward);
+        //Motors_movemet_direction(Left_forward);
         
-        if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 5))
+        if((distance_front_left < ultrasonic_45_threshold) || (distance_left < 4))
         {
           do{
-            motorA_right_speed = motor_speed;
-            motorB_left_speed = 0;
-            Motors_movemet_direction(Right_backward);
-            Motors_movemet_direction(Left_off);
+            motorA_right_speed = max_speed_right + 400;
+            motorB_left_speed = min_speed;
+            //Motors_movemet_direction(Right_backward);
+            //Motors_movemet_direction(Left_off);
             
-            analogWrite(ENA, motorA_right_speed);
-            analogWrite(ENB, motorB_left_speed);
+            servo_left.write(motorB_left_speed);
+            servo_right.write(motorA_right_speed);         
           }while(ultrasonic_45_threshold > ultrasonic_distance(trigPin_front_left, echoPin_front_left));
           delay(150);
         }
       }
       else
       {
-        motorA_right_speed = motor_speed;
-        motorB_left_speed = 0;
-        if((distance_front_right < ultrasonic_45_threshold) || (distance_right < 5))
+        motorA_right_speed = motor_speed_right;
+        motorB_left_speed = min_speed;
+        if((distance_front_right < ultrasonic_45_threshold) || (distance_right < 4))
         {
           do{
-            motorA_right_speed = 0;
-            motorB_left_speed = motor_speed;
+            motorA_right_speed = min_speed;
+            motorB_left_speed = max_speed_left - 400;        
+            //Motors_movemet_direction(Right_off);
+            //Motors_movemet_direction(Left_backward);
             
-            Motors_movemet_direction(Right_off);
-            Motors_movemet_direction(Left_backward);
-            
-            analogWrite(ENA, motorA_right_speed);
-            analogWrite(ENB, motorB_left_speed);
+            servo_left.write(motorB_left_speed);
+            servo_right.write(motorA_right_speed);
           }while(ultrasonic_45_threshold > ultrasonic_distance(trigPin_front_right, echoPin_front_right));
           delay(150);
         }
       }
-      analogWrite(ENA, motorA_right_speed);
-      analogWrite(ENB, motorB_left_speed);
+      servo_left.write(motorB_left_speed);
+      servo_right.write(motorA_right_speed);
     }
   }
   else if(What_To_Do == Stop)
   {
     // The robot must stop and figure out where it is.
-    Motors_movemet_direction(Right_stop);
-    Motors_movemet_direction(Left_stop);
+    motorA_right_speed = min_speed;
+    motorB_left_speed = min_speed;
       
-    analogWrite(ENA, 255);
-    analogWrite(ENB, 255);
+    servo_left.write(motorB_left_speed);
+    servo_right.write(motorA_right_speed);
     delay(50);
     What_To_Do = T_junction;
   }
   else if(What_To_Do == T_junction)
   {
     // In this section the robot should scan for objects on the wall and look for a heat source.
-    Motors_movemet_direction(Right_off);
-    Motors_movemet_direction(Left_off);
+    motorA_right_speed = min_speed;
+    motorB_left_speed = min_speed;
       
-    analogWrite(ENA, 0);
-    analogWrite(ENB, 0);
+    servo_left.write(motorB_left_speed);
+    servo_right.write(motorA_right_speed);
     while(1);
     //What_To_Do = Ready_to_move;
   }
