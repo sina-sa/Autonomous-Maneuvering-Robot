@@ -17,12 +17,12 @@ const int trigPin_front_right = 11;
 const int echoPin_front_right = 10;
 
 // Motor controller pins connected to Arduino
-const int ENA = 5;  // RIGHT
+//const int ENA = 5;  // RIGHT
 const int IN1 = A2;
 const int IN2 = A5;
 const int IN3 = A4;
 const int IN4 = A3;
-const int ENB = 6; // LEFT
+//const int ENB = 6; // LEFT
 
 // Servo pins
 const int servo_L = 6;
@@ -51,6 +51,8 @@ enum State_robot
   Moving,
   Stop,
   T_junction,
+  Turn_right_from_T,
+  Turn_left_from_T,
   Ready_to_move
 };
 
@@ -87,8 +89,8 @@ const int max_speed_right = 1300; // Maximum speed of the right motor
 const int min_speed = 1500; // Maximum speed of the right motor
 
 
-int motor_speed_left = 1550;
-int motor_speed_right = 1450;
+int motor_speed_left = 1560;
+int motor_speed_right = 1440;
 
 int speed_change = 0; // The difference in speed to give each of the motors
 
@@ -115,14 +117,21 @@ void setup()
   pinMode (IN2, OUTPUT);
   pinMode (IN3, OUTPUT);
   pinMode (IN4, OUTPUT);
-  pinMode (ENA, OUTPUT);
-  pinMode (ENB, OUTPUT);
+  //pinMode (ENA, OUTPUT);
+  //pinMode (ENB, OUTPUT);
   
   // Serial port setup
   Serial.begin(9600); // Starts the serial communication
 
   servo_left.attach(servo_L);
   servo_right.attach(servo_R);
+
+  motorA_right_speed = 1300;
+  motorB_left_speed = 1700;
+  delay(2); 
+  servo_left.write(motorB_left_speed);
+  servo_right.write(motorA_right_speed);
+  delay(2);
 
   What_To_Do = Moving;
 }
@@ -232,11 +241,13 @@ void loop()
   delay(500);
 */
 
-  //if((distance_front_right > 20) && (distance_front_left > 20) && (distance_front < 40))
-
-  if((distance_right > side_ultrasonic_threshold) && (distance_left > side_ultrasonic_threshold) && (distance_front < front_ultrasonic_threshold) && (distance_front_right > 20) && (distance_front_left > 20))  // At a T junction the robot needs to stop first
-    What_To_Do = Stop;
-
+  if(What_To_Do == Moving)
+  {
+    if((distance_right > side_ultrasonic_threshold) && (distance_left > side_ultrasonic_threshold) && (distance_front < front_ultrasonic_threshold) && (distance_front_right > 20) && (distance_front_left > 20))  // At a T junction the robot needs to stop first
+      What_To_Do = Stop;
+      //What_To_Do = Moving;
+  }
+  
   if(What_To_Do == Moving)
   {
     if((distance_front_left >= ultrasonic_45_threshold) && (distance_front_right >= ultrasonic_45_threshold))
@@ -308,7 +319,7 @@ void loop()
       
     servo_left.write(motorB_left_speed);
     servo_right.write(motorA_right_speed);
-    delay(50);
+    delay(500);
     What_To_Do = T_junction;
   }
   else if(What_To_Do == T_junction)
@@ -319,8 +330,100 @@ void loop()
       
     servo_left.write(motorB_left_speed);
     servo_right.write(motorA_right_speed);
-    while(1);
-    //What_To_Do = Ready_to_move;
+    
+    What_To_Do = Turn_right_from_T;
+  }
+  else if(What_To_Do == Turn_right_from_T)
+  {
+    distance_left = ultrasonic_distance(trigPin_left, echoPin_left);
+    distance_right = ultrasonic_distance(trigPin_right, echoPin_right);
+    distance_front = ultrasonic_distance(trigPin_front, echoPin_front);
+    distance_front_left = ultrasonic_distance(trigPin_front_left, echoPin_front_left);
+    distance_front_right = ultrasonic_distance(trigPin_front_right, echoPin_front_right);
+    
+    do{
+      motorA_right_speed = 1440;
+      motorB_left_speed = 1560;
+      delay(10);
+      servo_left.write(motorB_left_speed);
+      servo_right.write(motorA_right_speed);
+      delay(10);
+    }while(ultrasonic_distance(trigPin_front, echoPin_front) > 6);
+
+    servo_left.write(min_speed);
+    servo_right.write(min_speed);
+    delay(100);
+
+    do{
+      motorA_right_speed = 1560;
+      motorB_left_speed = 1560;
+      delay(10); 
+      servo_left.write(motorB_left_speed);
+      servo_right.write(motorA_right_speed);
+      delay(10);
+    }while(ultrasonic_distance(trigPin_left, echoPin_left) > 10);
+    while(ultrasonic_distance(trigPin_right, echoPin_right) < 30);
+    while(ultrasonic_distance(trigPin_front_left, echoPin_front_left) < 100);
+    servo_left.write(min_speed);
+    servo_right.write(min_speed);
+    delay(100);
+
+    motorA_right_speed = 1440;
+    motorB_left_speed = 1560;
+    delay(5);
+    servo_left.write(motorB_left_speed);
+    servo_right.write(motorA_right_speed);
+    delay(800);
+    servo_left.write(min_speed);
+    servo_right.write(min_speed);
+
+    What_To_Do = Moving;
+  }
+  else if(What_To_Do == Turn_left_from_T)
+  {
+    distance_left = ultrasonic_distance(trigPin_left, echoPin_left);
+    distance_right = ultrasonic_distance(trigPin_right, echoPin_right);
+    distance_front = ultrasonic_distance(trigPin_front, echoPin_front);
+    distance_front_left = ultrasonic_distance(trigPin_front_left, echoPin_front_left);
+    distance_front_right = ultrasonic_distance(trigPin_front_right, echoPin_front_right);
+    
+    do{
+      motorA_right_speed = 1440;
+      motorB_left_speed = 1560;
+      delay(10);
+      servo_left.write(motorB_left_speed);
+      servo_right.write(motorA_right_speed);
+      delay(10);
+    }while(ultrasonic_distance(trigPin_front, echoPin_front) > 6);
+
+    servo_left.write(min_speed);
+    servo_right.write(min_speed);
+    delay(100);
+
+    do{
+      motorA_right_speed = 1440;
+      motorB_left_speed = 1440;
+      delay(10); 
+      servo_left.write(motorB_left_speed);
+      servo_right.write(motorA_right_speed);
+      delay(10);
+    }while(ultrasonic_distance(trigPin_right, echoPin_right) > 10);
+    while(ultrasonic_distance(trigPin_left, echoPin_left) < 30);
+    while(ultrasonic_distance(trigPin_front_right, echoPin_front_right) < 100);
+    servo_left.write(min_speed);
+    servo_right.write(min_speed);
+    delay(100);
+
+    motorA_right_speed = 1440;
+    motorB_left_speed = 1560;
+    delay(5);
+    servo_left.write(motorB_left_speed);
+    servo_right.write(motorA_right_speed);
+    delay(800);
+    servo_left.write(min_speed);
+    servo_right.write(min_speed);
+
+    What_To_Do = Moving;
   }
   else
   {
