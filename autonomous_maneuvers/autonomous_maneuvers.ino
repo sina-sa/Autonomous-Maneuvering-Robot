@@ -16,13 +16,7 @@ const int echoPin_front_left = 2;
 const int trigPin_front_right = 11;
 const int echoPin_front_right = 10;
 
-// Motor controller pins connected to Arduino
-//const int ENA = 5;  // RIGHT
-const int IN1 = A2;
-const int IN2 = A5;
-const int IN3 = A4;
-const int IN4 = A3;
-//const int ENB = 6; // LEFT
+
 
 // Servo pins
 const int servo_L = 6;
@@ -112,13 +106,6 @@ void setup()
   pinMode(trigPin_front_right, OUTPUT);
   pinMode(echoPin_front_right, INPUT);
 
-  // Motor controller setup
-  pinMode (IN1, OUTPUT);
-  pinMode (IN2, OUTPUT);
-  pinMode (IN3, OUTPUT);
-  pinMode (IN4, OUTPUT);
-  //pinMode (ENA, OUTPUT);
-  //pinMode (ENB, OUTPUT);
   
   // Serial port setup
   Serial.begin(9600); // Starts the serial communication
@@ -126,12 +113,12 @@ void setup()
   servo_left.attach(servo_L);
   servo_right.attach(servo_R);
 
-  motorA_right_speed = 1300;
-  motorB_left_speed = 1700;
+  motorA_right_speed = 1500;
+  motorB_left_speed = 1500;
   delay(2); 
   servo_left.write(motorB_left_speed);
   servo_right.write(motorA_right_speed);
-  delay(2);
+  delay(5);
 
   What_To_Do = Moving;
 }
@@ -217,7 +204,7 @@ void Find_direction(void)
 
 void loop() 
 {
-  //What_To_Do = Stop;
+  What_To_Do = Stop;
 
   // Read the value from all 5 ultrasonic sensors
   distance_left = ultrasonic_distance(trigPin_left, echoPin_left);
@@ -225,7 +212,7 @@ void loop()
   distance_front = ultrasonic_distance(trigPin_front, echoPin_front);
   distance_front_left = ultrasonic_distance(trigPin_front_left, echoPin_front_left);
   distance_front_right = ultrasonic_distance(trigPin_front_right, echoPin_front_right);
-/*
+
   Serial.print("\n distance_left = ");
   Serial.print(distance_left);
   Serial.print("\n distance_right = ");
@@ -239,7 +226,7 @@ void loop()
   Serial.print("\n\n");
 
   delay(500);
-*/
+
 
   if(What_To_Do == Moving)
   {
@@ -331,7 +318,7 @@ void loop()
     servo_left.write(motorB_left_speed);
     servo_right.write(motorA_right_speed);
     
-    What_To_Do = Turn_right_from_T;
+    What_To_Do = Turn_left_from_T;
   }
   else if(What_To_Do == Turn_right_from_T)
   {
