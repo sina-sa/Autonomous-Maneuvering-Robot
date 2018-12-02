@@ -16,8 +16,6 @@ const int echoPin_front_left = 2;
 const int trigPin_front_right = 11;
 const int echoPin_front_right = 10;
 
-
-
 // Servo pins
 const int servo_L = 6;
 const int servo_R = 5;
@@ -82,7 +80,6 @@ const int max_speed_left = 1700; // Maximum speed of the left motor
 const int max_speed_right = 1300; // Maximum speed of the right motor
 const int min_speed = 1500; // Maximum speed of the right motor
 
-
 int motor_speed_left = 1560;
 int motor_speed_right = 1440;
 
@@ -105,7 +102,6 @@ void setup()
   pinMode(echoPin_front_left, INPUT);
   pinMode(trigPin_front_right, OUTPUT);
   pinMode(echoPin_front_right, INPUT);
-
   
   // Serial port setup
   Serial.begin(9600); // Starts the serial communication
@@ -204,7 +200,7 @@ void Find_direction(void)
 
 void loop() 
 {
-  What_To_Do = Stop;
+  //What_To_Do = Stop;
 
   // Read the value from all 5 ultrasonic sensors
   distance_left = ultrasonic_distance(trigPin_left, echoPin_left);
@@ -212,7 +208,7 @@ void loop()
   distance_front = ultrasonic_distance(trigPin_front, echoPin_front);
   distance_front_left = ultrasonic_distance(trigPin_front_left, echoPin_front_left);
   distance_front_right = ultrasonic_distance(trigPin_front_right, echoPin_front_right);
-
+/*
   Serial.print("\n distance_left = ");
   Serial.print(distance_left);
   Serial.print("\n distance_right = ");
@@ -226,7 +222,7 @@ void loop()
   Serial.print("\n\n");
 
   delay(500);
-
+*/
 
   if(What_To_Do == Moving)
   {
@@ -375,8 +371,8 @@ void loop()
     distance_front_right = ultrasonic_distance(trigPin_front_right, echoPin_front_right);
     
     do{
-      motorA_right_speed = 1440;
-      motorB_left_speed = 1560;
+      motorA_right_speed = 1460;
+      motorB_left_speed = 1540;
       delay(10);
       servo_left.write(motorB_left_speed);
       servo_right.write(motorA_right_speed);
@@ -388,8 +384,8 @@ void loop()
     delay(100);
 
     do{
-      motorA_right_speed = 1440;
-      motorB_left_speed = 1440;
+      motorA_right_speed = 1460;
+      motorB_left_speed = 1460;
       delay(10); 
       servo_left.write(motorB_left_speed);
       servo_right.write(motorA_right_speed);
@@ -401,8 +397,8 @@ void loop()
     servo_right.write(min_speed);
     delay(100);
 
-    motorA_right_speed = 1440;
-    motorB_left_speed = 1560;
+    motorA_right_speed = 1460;
+    motorB_left_speed = 1540;
     delay(5);
     servo_left.write(motorB_left_speed);
     servo_right.write(motorA_right_speed);
